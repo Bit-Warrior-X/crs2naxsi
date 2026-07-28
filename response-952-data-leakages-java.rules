@@ -1,5 +1,0 @@
-# Auto-converted from CRS RESPONSE-952-DATA-LEAKAGES-JAVA.conf by crs2naxsi.py
-# Review before production use. Whitelist with wl:<crs_id>
-# NOTE: CRS response rules adapted to request match-zones (NAXSI cannot inspect RESPONSE_BODY).
-
-MainRule "rx:(?i)\\b(?:java[\\.a-z]+E(?:xception|rror)|(?:org|com)\\.[\\.a-z]+Exception|Exception in thread \\x22[^\\x22]*\\x22|at[\\s\\x0b]+(?:ja(?:vax?|karta)|org|com))\\b" "msg:CRS 952110 Java Errors [adapted CRS response→request; NAXSI has no response MZ]" "mz:ARGS|BODY|URL|HEADERS" "s:$LEAKAGE:4" id:952110;

@@ -1,6 +1,0 @@
-# Auto-converted from CRS REQUEST-922-MULTIPART-ATTACK.conf by crs2naxsi.py
-# Review before production use. Whitelist with wl:<crs_id>
-
-MainRule "rx:(?i)^content-type\\s*:\\s*(.*)\\x24" "msg:CRS 922150" "mz:HEADERS" "s:$PROTOCOL:2" id:922150;
-MainRule "rx:(?i)content-transfer-encoding:(.*)" "msg:CRS 922120 Content-Transfer-Encoding was deprecated by rfc7578 in 2015 and should not be used" "mz:HEADERS" "s:$PROTOCOL:8" id:922120;
-MainRule "rx:(?i)[^\\x21-\\x7E][\\x21-\\x39\\x3B-\\x7E]*:" "msg:CRS 922130 Multipart header contains characters outside of valid range" "mz:HEADERS" "s:$PROTOCOL:8" id:922130;
