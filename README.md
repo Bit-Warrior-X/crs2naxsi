@@ -1,201 +1,295 @@
-CRS → NAXSI converter (crs2naxsi)
-================================
+# CRS → NAXSI converter (`crs2naxsi`)
 
-Convert OWASP Core Rule Set (ModSecurity SecLang) into NAXSI MainRule files
-for use with wargio/naxsi (or compatible nginx WAF builds).
+Convert [OWASP Core Rule Set](https://coreruleset.org/) (ModSecurity SecLang) into [NAXSI](https://github.com/wargio/naxsi) `MainRule` files for nginx / OpenResty WAF builds.
 
-CRS and NAXSI are different engines. This tool converts the *translatable*
-subset (regex / phrase / string matches on request data). It does NOT
-recreate CRS's full anomaly-scoring, TX collections, or response-body
-inspection. Treat the output as a strong starting ruleset, then tune with
-LearningMode and whitelists.
+> **CRS and NAXSI are different engines.** This tool converts the *translatable* subset (regex / phrase / string matches on request data). It does **not** recreate CRS anomaly scoring, TX collections, or real response-body inspection. Treat the output as a strong starting ruleset, then tune with `LearningMode` and whitelists.
 
+## Table of contents
 
-1. Quick start
---------------
+- [Quick start](#quick-start)
+- [What gets converted](#what-gets-converted)
+- [Output layout](#output-layout)
+- [Score families](#score-families-checkrule)
+- [Response rules (950–956)](#response-rules-950956--important)
+- [CRS files that mostly do not convert](#crs-files-that-mostly-do-not-convert)
+- [Install into nginx / OpenResty](#install-into-nginx--openresty)
+- [LearningMode first](#learningmode-first-required-for-production)
+- [Known limitations](#known-limitations)
+- [Whitelist / log tips](#whitelist--log-tips)
+- [Regenerating after CRS updates](#regenerating-after-crs-updates)
+- [Project layout](#project-layout)
 
-  cd crs2naxsi
-  python3 crs2naxsi.py --self-test
-  python3 crs2naxsi.py coreruleset/rules crs2naxsi_rules
+---
 
-  # Only paranoia levels 1–2 (fewer / safer rules):
-  python3 crs2naxsi.py --max-paranoia 2 coreruleset/rules crs2naxsi_rules_pl2
+## Quick start
 
-Requirements: Python 3.8+ (stdlib only). Point rules_dir at a CRS `rules/`
-tree that still contains the `*.data` phrase lists (sql-errors.data, etc.).
+```bash
+cd crs2naxsi
+python3 crs2naxsi.py --self-test
+python3 crs2naxsi.py coreruleset/rules crs2naxsi_rules
 
+# Only paranoia levels 1–2 (fewer / safer rules):
+python3 crs2naxsi.py --max-paranoia 2 coreruleset/rules crs2naxsi_rules_pl2
+```
 
-2. What gets converted
-----------------------
+| Requirement | Notes |
+|---|---|
+| Python | 3.8+ (stdlib only) |
+| CRS tree | `rules_dir` must include `*.conf` **and** `*.data` phrase lists (`sql-errors.data`, etc.) |
 
-Included CRS files:
-  REQUEST-9xx-*.conf          (attack / protocol / scanner / multipart / …)
-  RESPONSE-9xx-*.conf         (leakage / webshell signatures — see §5)
-  REQUEST-900-*.conf.example  (scanned; usually produces 0 MainRules)
+```text
+python3 crs2naxsi.py [-h] [--max-paranoia {1,2,3,4}] [--self-test] [rules_dir] [out_dir]
+```
 
-Operators:
-  @rx, implicit regex
-  @pm, @pmFromFile / @pmf
-  @contains, @streq, @beginsWith, @endsWith
-  @within          (literal word lists only; TX macros skipped)
-  @validateByteRange (common CRS ranges → forbidden-byte regex)
-  !@rx / other negated forms → NAXSI `MainRule negative …`
-  @detectSQLi / @detectXSS → notes in libinjection.conf (use native LibInjection)
+---
 
-Also:
-  - Non-chained rules in phases 1–4
-  - Chain *heads* when the parent has a usable operator (children that only
-    refine via TX/MATCHED_VARS are dropped)
-  - Oversized regexes split into multiple MainRules (id, id*100+n, …)
-  - ARGS_NAMES / BODY|NAME split into separate rules (id+500000) because
-    NAXSI treats NAME as a rule-wide flag
+## What gets converted
 
-CRS rule ids are preserved (900000+ range), so NAXSI_FMT `id0=942152` maps
-to CRS documentation and to `BasicRule wl:942152 …`.
+### CRS files
 
+| Pattern | Role |
+|---|---|
+| `REQUEST-9xx-*.conf` | Attack / protocol / scanner / multipart / … |
+| `RESPONSE-9xx-*.conf` | Leakage / webshell signatures ([adapted](#response-rules-950956--important)) |
+| `REQUEST-900-*.conf.example` | Scanned; usually produces 0 MainRules |
 
-3. Output layout (crs2naxsi_rules/)
------------------------------------
+### Operators
 
-  request-9xx-*.rules              Converted request MainRules (one file per CRS category)
-  response-9xx-*.rules             Adapted response signatures (see §5)
-  checkrules.conf                  CheckRule "$FAMILY >= 8" BLOCK; for every score used
-  libinjection.conf                LibInjectionSql / LibInjectionXss + CRS id notes
-  method-enforcement.example.conf  nginx stand-in for CRS 911100 (allowed methods)
-  include.example.conf             Sample location{} include list
-  crs-machinery.notes              Why 901/949/959/980/etc. emit few/no MainRules
-  skipped.log                      Every skipped CRS id + reason (tab-separated)
+| ModSecurity | NAXSI result |
+|---|---|
+| `@rx`, implicit regex | `rx:…` |
+| `@pm`, `@pmFromFile` / `@pmf` | `rx:` alternation (chunked if needed) |
+| `@contains` | `str:…` |
+| `@streq`, `@beginsWith`, `@endsWith` | `rx:` anchors |
+| `@within` (literal lists) | `rx:` alternation; **TX macros skipped** |
+| `@validateByteRange` (common ranges) | Forbidden-byte `rx:` |
+| `!@rx` and other negations | `MainRule negative …` |
+| `@detectSQLi` / `@detectXSS` | Notes in [`libinjection.conf`](crs2naxsi_rules/libinjection.conf) → use native LibInjection |
 
-Typical conversion stats (OWASP CRS ~4.29, --max-paranoia 4):
-  ~312 CRS rules converted (+ ~4 libinjection notes)
-  ~57  of those adapted from RESPONSE_* rules
-  ~31  salvaged from chain heads
-  ~300 skipped (mostly ctl/skipAfter paranoia gates and TX/@eq/@gt machinery)
+### Other behavior
 
+- Non-chained rules in phases **1–4**
+- **Chain heads** when the parent has a usable operator (TX/MATCHED_VARS children dropped)
+- Oversized regexes split into multiple MainRules (`id`, `id*100+n`, …)
+- `ARGS_NAMES` / `BODY\|NAME` split into separate rules (`id+500000`) — NAXSI treats `NAME` as a rule-wide flag
 
-4. Score families (CheckRule)
------------------------------
+CRS rule ids are preserved (900000+ range), so NAXSI_FMT `id0=942152` maps to CRS docs and to:
 
-Converted rules score into named counters. Defaults in checkrules.conf
-block when a counter reaches 8 (one CRITICAL hit, or several smaller ones):
+```nginx
+BasicRule wl:942152 "mz:$ARGS_VAR:description";
+```
 
-  $SQL $XSS $RCE $RFI $TRAVERSAL $PHP $JAVA $SCANNER $PROTOCOL
-  $SESSFIX $GENERIC $LEAKAGE $WEBSHELL $EXCEPTION
+---
 
-Tune per app, for example:
-  CheckRule "$TRAVERSAL >= 5" BLOCK;
-  CheckRule "$SQL >= 8" BLOCK;
+## Output layout
 
+Generated under [`crs2naxsi_rules/`](crs2naxsi_rules/):
 
-5. Response rules (950–956) — important
----------------------------------------
+| File | Description |
+|---|---|
+| `request-9xx-*.rules` | Converted request MainRules (one file per CRS category) |
+| `response-9xx-*.rules` | Adapted response signatures |
+| `checkrules.conf` | `CheckRule "$FAMILY >= 8" BLOCK;` for every score used |
+| [`checkrules.txt`](checkrules.txt) | Same CheckRules with inline documentation (repo root copy) |
+| `libinjection.conf` | `LibInjectionSql` / `LibInjectionXss` + CRS id notes |
+| `method-enforcement.example.conf` | nginx stand-in for CRS **911100** (allowed methods) |
+| `include.example.conf` | Sample `location {}` include list |
+| `crs-machinery.notes` | Why 901/949/959/980/etc. emit few/no MainRules |
+| `skipped.log` | Every skipped CRS id + reason (tab-separated) |
 
-NAXSI has no RESPONSE_BODY match zone. CRS response leakage / webshell
-rules are *adapted* onto request zones:
+### Typical stats (OWASP CRS ~4.29, `--max-paranoia 4`)
 
-  mz:ARGS|BODY|URL|HEADERS
+| Metric | Approx. |
+|---|---|
+| CRS rules converted | ~312 (+ ~4 libinjection notes) |
+| Adapted from `RESPONSE_*` | ~57 |
+| Salvaged chain heads | ~31 |
+| Skipped | ~300 (mostly `ctl`/`skipAfter` + TX/`@eq`/`@gt`) |
+
+---
+
+## Score families (`CheckRule`)
+
+Converted rules score into named counters. Defaults block when a counter reaches **8** (one CRITICAL hit, or several smaller ones).
+
+| Score | Typical CRS families |
+|---|---|
+| `$SQL` | 942 |
+| `$XSS` | 941 |
+| `$RCE` | 932 |
+| `$RFI` | 931 |
+| `$TRAVERSAL` | 930 (LFI) |
+| `$PHP` | 933 |
+| `$JAVA` | 944 |
+| `$SCANNER` | 913 |
+| `$PROTOCOL` | 920–922, 911 |
+| `$SESSFIX` | 943 |
+| `$GENERIC` | 934 |
+| `$LEAKAGE` | 950–954, 956 |
+| `$WEBSHELL` | 955 |
+| `$EXCEPTION` | 900 / 905 |
+
+Severity → score used by the converter:
+
+| CRS severity | Score |
+|---|---|
+| CRITICAL | +8 |
+| ERROR | +4 |
+| WARNING | +2 |
+| NOTICE | +1 |
+
+Tune per app:
+
+```nginx
+CheckRule "$TRAVERSAL >= 5" BLOCK;
+CheckRule "$SQL >= 8" BLOCK;
+```
+
+See [`checkrules.txt`](checkrules.txt) and [`crs2naxsi_rules/checkrules.conf`](crs2naxsi_rules/checkrules.conf).
+
+---
+
+## Response rules (950–956) — important
+
+NAXSI has **no** `RESPONSE_BODY` match zone. CRS response leakage / webshell rules are **adapted** onto request zones:
+
+```text
+mz:ARGS|BODY|URL|HEADERS
+```
 
 Messages are tagged:
-  [adapted CRS response→request; NAXSI has no response MZ]
 
-They can still catch error strings / webshell markers in *requests*, but
-they do NOT inspect HTTP responses. For real outbound leakage detection
-you need a separate response filter (e.g. OpenResty body filter), not NAXSI.
+```text
+[adapted CRS response→request; NAXSI has no response MZ]
+```
 
+They can still catch error strings / webshell markers in **requests**, but they do **not** inspect HTTP responses. For real outbound leakage detection, use a separate response filter (e.g. OpenResty body filter), not NAXSI.
 
-6. CRS files that mostly do not convert
----------------------------------------
+---
 
-  REQUEST-900-*     Exclusion templates → write BasicRule wl:<id> by hand
-  REQUEST-901-*     Initialization / TX setup → NAXSI LearningMode + CheckRule
-  REQUEST-905/999   Exception / skip machinery → manual whitelists
-  REQUEST-911-*     Method policy → method-enforcement.example.conf (nginx)
-  REQUEST-949-*     Inbound anomaly evaluation → checkrules.conf
-  RESPONSE-959-*    Outbound anomaly evaluation → checkrules.conf
-  RESPONSE-980-*    Correlation / logging only → no NAXSI equivalent
+## CRS files that mostly do not convert
 
-See crs-machinery.notes and skipped.log for details.
+| CRS file | What to use instead |
+|---|---|
+| `REQUEST-900-*` | Exclusion templates → `BasicRule wl:<id>` by hand |
+| `REQUEST-901-*` | Initialization / TX setup → NAXSI `LearningMode` + `CheckRule` |
+| `REQUEST-905` / `999` | Exception / skip machinery → manual whitelists |
+| `REQUEST-911-*` | Method policy → [`method-enforcement.example.conf`](crs2naxsi_rules/method-enforcement.example.conf) |
+| `REQUEST-949-*` | Inbound anomaly evaluation → `checkrules.conf` |
+| `RESPONSE-959-*` | Outbound anomaly evaluation → `checkrules.conf` |
+| `RESPONSE-980-*` | Correlation / logging only → no NAXSI equivalent |
 
+Details: [`crs-machinery.notes`](crs2naxsi_rules/crs-machinery.notes), [`skipped.log`](crs2naxsi_rules/skipped.log).
 
-7. Install into nginx / OpenResty
----------------------------------
+---
 
-1. Copy generated files next to your NAXSI rules, e.g.:
-     /etc/nginx/naxsi/crs/
+## Install into nginx / OpenResty
 
-2. In http {} (or the server that loads MainRules), after naxsi_core.rules:
-     include /etc/nginx/naxsi/crs/*.rules;
+1. Copy generated files next to your NAXSI rules, e.g. `/etc/nginx/naxsi/crs/`.
+
+2. In `http {}` (or the context that loads MainRules), after `naxsi_core.rules`:
+
+   ```nginx
+   include /etc/nginx/naxsi/crs/*.rules;
+   ```
+
    Or include only the categories you want (recommended at first).
 
-3. In each protected location {}:
-     SecRulesEnabled;
-     # LearningMode;          # enable first — see §8
-     DeniedUrl /RequestDenied;
-     include /etc/nginx/naxsi/crs/checkrules.conf;
-     include /etc/nginx/naxsi/crs/libinjection.conf;
-     # optional: include method-enforcement.example.conf logic via nginx if/limit_except
+3. In each protected `location {}`:
 
-4. Keep native libinjection enabled — it covers many SQLi/XSS cases better
-   than regex alone:
-     LibInjectionSql;
-     LibInjectionXss;
+   ```nginx
+   SecRulesEnabled;
+   # LearningMode;          # enable first — see below
+   DeniedUrl /RequestDenied;
+   include /etc/nginx/naxsi/crs/checkrules.conf;
+   include /etc/nginx/naxsi/crs/libinjection.conf;
+   ```
 
-5. nginx -t && reload.
+4. Keep native libinjection enabled — it covers many SQLi/XSS cases better than regex alone:
 
-See include.example.conf for a full location skeleton.
+   ```nginx
+   LibInjectionSql;
+   LibInjectionXss;
+   ```
 
+5. Test and reload:
 
-8. LearningMode first (required for production)
------------------------------------------------
+   ```bash
+   nginx -t && nginx -s reload
+   ```
 
-Converted CRS rules will false-positive on real applications.
+See [`include.example.conf`](crs2naxsi_rules/include.example.conf) for a full location skeleton.
 
-  1. Add LearningMode; to the location
-  2. Pass production (or staging) traffic
-  3. Collect NAXSI_FMT / extensive log lines
-  4. Whitelist legitimate hits, then remove LearningMode
+---
+
+## LearningMode first (required for production)
+
+Converted CRS rules **will** false-positive on real applications.
+
+1. Add `LearningMode;` to the location  
+2. Pass production (or staging) traffic  
+3. Collect `NAXSI_FMT` / extensive log lines  
+4. Whitelist legitimate hits, then remove `LearningMode`
 
 Example whitelist (CRS id preserved):
-  BasicRule wl:942152 "mz:$ARGS_VAR:description";
 
-Prefer narrow whitelists (specific $ARGS_VAR / $BODY_VAR / $URL) over
-global wl:id with no match zone.
+```nginx
+BasicRule wl:942152 "mz:$ARGS_VAR:description";
+```
 
+Prefer narrow whitelists (specific `$ARGS_VAR` / `$BODY_VAR` / `$URL`) over global `wl:id` with no match zone.
 
-9. Known limitations
---------------------
+---
 
-- No CRS anomaly engine: NAXSI uses per-hit scores + CheckRule thresholds,
-  not TX inbound_anomaly_score_plN.
-- ctl / skipAfter / paranoia gates: skipped (~200 ids). Use --max-paranoia
-  instead of CRS TX:DETECTION_PARANOIA_LEVEL.
-- Chained rules: only convertible heads are emitted; refinement children lost.
-- Lost transformations (base64Decode, cmdLine, htmlEntityDecode, …) are
-  marked inline as [LOST t:…]; those rules are weaker against evasion.
-- @eq / @gt / @ge on &HEADER counts, REQUEST_METHOD, RESPONSE_STATUS, and
-  TX-macro @within: not expressible as MainRules.
-- Quarantined standalone-dangerous rules (e.g. 921170 HPP): see QUARANTINE
-  in crs2naxsi.py / skipped.log.
-- Huge regexes are chunked; a few fragments may match slightly more broadly
-  when a shared suffix had to be dropped to fit nginx's ~4KB token limit.
-- Response-adapted rules are not a substitute for response body scanning.
+## Known limitations
 
+- **No CRS anomaly engine** — NAXSI uses per-hit scores + `CheckRule` thresholds, not `TX:inbound_anomaly_score_plN`.
+- **`ctl` / `skipAfter` / paranoia gates** — skipped (~200 ids). Use `--max-paranoia` instead of CRS `TX:DETECTION_PARANOIA_LEVEL`.
+- **Chained rules** — only convertible heads are emitted; refinement children are lost.
+- **Lost transformations** (`base64Decode`, `cmdLine`, `htmlEntityDecode`, …) are marked inline as `[LOST t:…]`; those rules are weaker against evasion.
+- **`@eq` / `@gt` / `@ge`** on `&HEADER` counts, `REQUEST_METHOD`, `RESPONSE_STATUS`, and TX-macro `@within` are not expressible as MainRules.
+- **Quarantined** standalone-dangerous rules (e.g. `921170` HPP) — see `QUARANTINE` in [`crs2naxsi.py`](crs2naxsi.py) / `skipped.log`.
+- **Huge regexes** are chunked; a few fragments may match slightly more broadly when a shared suffix had to be dropped to fit nginx’s ~4KB token limit.
+- **Response-adapted rules** are not a substitute for response body scanning.
 
-10. Whitelist / log tips
-------------------------
+---
 
-- Log field id0=<crs_id> → look up CRS docs or msg:CRS <id> in the .rules file
-- Name-zone twin rules use id = original + 500000
-- Chunked rules: first part keeps CRS id; further parts use id*100+n
-- Messages may include [PL2], [chain head], [LOST t:…], [adapted CRS response→request…]
+## Whitelist / log tips
 
+| Log / id pattern | Meaning |
+|---|---|
+| `id0=<crs_id>` | Look up CRS docs or `msg:CRS <id>` in the `.rules` file |
+| `id = original + 500000` | Name-zone twin rule |
+| `id*100+n` | Chunked rule parts (`n > 1`) |
 
-11. Regenerating after CRS updates
-----------------------------------
+Messages may include `[PL2]`, `[chain head]`, `[LOST t:…]`, `[adapted CRS response→request…]`.
 
-  git -C coreruleset pull   # or replace the CRS tree
-  python3 crs2naxsi.py coreruleset/rules crs2naxsi_rules
-  diff -ru crs2naxsi_rules.bak crs2naxsi_rules   # review before deploy
+---
 
-Always re-run LearningMode after regenerating.
+## Regenerating after CRS updates
 
+```bash
+git -C coreruleset pull   # or replace the CRS tree
+python3 crs2naxsi.py coreruleset/rules crs2naxsi_rules
+diff -ru crs2naxsi_rules.bak crs2naxsi_rules   # review before deploy
+```
+
+Always re-run **LearningMode** after regenerating.
+
+---
+
+## Project layout
+
+```text
+crs2naxsi/
+├── crs2naxsi.py           # Converter
+├── checkrules.txt         # Documented CheckRule snippet
+├── README.md              # This file
+├── coreruleset/           # OWASP CRS sources (rules/*.conf, *.data)
+└── crs2naxsi_rules/       # Generated NAXSI rules + helpers
+```
+
+## License / attribution
+
+- Converter: part of this repository’s nginx WAF / NAXSI packaging.
+- Rule *content* originates from [OWASP CRS](https://github.com/coreruleset/coreruleset) (Apache-2.0). Review CRS licensing before redistribution of generated rule files.
