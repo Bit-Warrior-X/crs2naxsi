@@ -310,10 +310,8 @@ crs2naxsi/
 ├── crs2naxsi.py           # Converter
 ├── checkrules.txt         # Documented CheckRule snippet
 ├── README.md              # This file
-├── AUDIT_FIXES.md         # Live nginx+naxsi audit findings that drove guards
 ├── validate_traffic.sh    # Benign/attack HTTP smoke matrix (post-deploy)
 ├── coreruleset/           # OWASP CRS sources (rules/*.conf, *.data)
-├── claude/                # Audit working copy (reference; do not deploy)
 └── crs2naxsi_rules/       # Generated NAXSI rules + helpers
 ```
 
