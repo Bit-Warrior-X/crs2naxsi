@@ -1,6 +1,34 @@
-# Add inside each protected location{} (thresholds: tune per app)
+# NAXSI CheckRules for CRS→NAXSI converted rules (crs2naxsi)
+# ===========================================================
+# Equivalent of CRS REQUEST-949 / RESPONSE-959 anomaly blocking.
+# CRS sums TX anomaly scores; NAXSI uses per-family CheckRule counters.
+#
+# Place inside each protected location{} (with SecRulesEnabled / DeniedUrl):
+#   include checkrules.txt;   # or checkrules.conf from crs2naxsi_rules/
+#
+# Score → BLOCK when counter reaches the threshold.
+# Severity mapping used by crs2naxsi.py:
+#   CRITICAL → +8   ERROR → +4   WARNING → +2   NOTICE → +1
+# So one CRITICAL match (or several smaller hits) trips >= 8.
+#
+# Tune per application. Examples:
+#   CheckRule "$TRAVERSAL >= 5" BLOCK;
+#   CheckRule "$SQL >= 8" LOG;     # log-only while learning
+#
+# Family map (CRS id prefix → score):
+#   913 → $SCANNER      920–922 → $PROTOCOL    930 → $TRAVERSAL
+#   931 → $RFI          932 → $RCE             933 → $PHP
+#   934 → $GENERIC      941 → $XSS             942 → $SQL
+#   943 → $SESSFIX      944 → $JAVA
+#   950–954,956 → $LEAKAGE   955 → $WEBSHELL   900/905 → $EXCEPTION
+#
+# Keep native libinjection enabled as well (see libinjection.conf):
+#   LibInjectionSql;  LibInjectionXss;
+
+CheckRule "$EXCEPTION >= 8" BLOCK;
 CheckRule "$GENERIC >= 8" BLOCK;
 CheckRule "$JAVA >= 8" BLOCK;
+CheckRule "$LEAKAGE >= 8" BLOCK;
 CheckRule "$PHP >= 8" BLOCK;
 CheckRule "$PROTOCOL >= 8" BLOCK;
 CheckRule "$RCE >= 8" BLOCK;
@@ -9,4 +37,5 @@ CheckRule "$SCANNER >= 8" BLOCK;
 CheckRule "$SESSFIX >= 8" BLOCK;
 CheckRule "$SQL >= 8" BLOCK;
 CheckRule "$TRAVERSAL >= 8" BLOCK;
+CheckRule "$WEBSHELL >= 8" BLOCK;
 CheckRule "$XSS >= 8" BLOCK;
