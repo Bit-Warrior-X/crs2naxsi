@@ -1,0 +1,4 @@
+# Auto-converted from CRS REQUEST-905-COMMON-EXCEPTIONS.conf by crs2naxsi.py
+# Review before production use. Whitelist with wl:<crs_id>
+
+MainRule "rx:^GET\\ /\\x24" "msg:CRS 905100  [chain head]" "mz:URL|ARGS" "s:$EXCEPTION:2" id:905100;

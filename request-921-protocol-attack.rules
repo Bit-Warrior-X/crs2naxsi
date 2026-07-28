@@ -1,0 +1,22 @@
+# Auto-converted from CRS REQUEST-921-PROTOCOL-ATTACK.conf by crs2naxsi.py
+# Review before production use. Whitelist with wl:<crs_id>
+
+MainRule "rx:(?i)(?:get|p(?:(?:os|u)t|atch|rop(?:find|atch))|head|options|co(?:nnect|py)|delete|trac[ek]|m(?:kcol|ove)|(?:un)?lock)[\\s\\x0b]+[^\\s\\x0b]+[\\s\\x0b]+http/[0-9]" "msg:CRS 921110 HTTP Request Smuggling Attack [LOST t:htmlentitydecode]" "mz:ARGS|BODY" "s:$PROTOCOL:8" id:921110;
+MainRule "rx:(?i)(?:get|p(?:(?:os|u)t|atch|rop(?:find|atch))|head|options|co(?:nnect|py)|delete|trac[ek]|m(?:kcol|ove)|(?:un)?lock)[\\s\\x0b]+[^\\s\\x0b]+[\\s\\x0b]+http/[0-9]" "msg:CRS 921110 (names) HTTP Request Smuggling Attack [LOST t:htmlentitydecode]" "mz:ARGS|BODY|NAME" "s:$PROTOCOL:8" id:1421110;
+MainRule "rx:(?i)[\\n\\r][^0-9A-Z_a-z]*?(?:content-(?:type|length)|set-cookie|location):[\\s\\x0b]*[0-9A-Z_a-z]" "msg:CRS 921120 HTTP Response Splitting Attack" "mz:$HEADERS_VAR:Cookie|ARGS|BODY" "s:$PROTOCOL:8" id:921120;
+MainRule "rx:(?i)[\\n\\r][^0-9A-Z_a-z]*?(?:content-(?:type|length)|set-cookie|location):[\\s\\x0b]*[0-9A-Z_a-z]" "msg:CRS 921120 (names) HTTP Response Splitting Attack" "mz:ARGS|BODY|NAME" "s:$PROTOCOL:8" id:1421120;
+MainRule "rx:(?i)(?:\\bhttp/\\d|<(?:html|meta)\\b)" "msg:CRS 921130 HTTP Response Splitting Attack [LOST t:htmlentitydecode]" "mz:$HEADERS_VAR:Cookie|ARGS|BODY" "s:$PROTOCOL:8" id:921130;
+MainRule "rx:(?i)(?:\\bhttp/\\d|<(?:html|meta)\\b)" "msg:CRS 921130 (names) HTTP Response Splitting Attack [LOST t:htmlentitydecode]" "mz:ARGS|BODY|NAME" "s:$PROTOCOL:8" id:1421130;
+MainRule "rx:[\\n\\r]" "msg:CRS 921140 HTTP Header Injection Attack via headers" "mz:HEADERS" "s:$PROTOCOL:8" id:921140;
+MainRule "rx:[\\n\\r]" "msg:CRS 921140 (names) HTTP Header Injection Attack via headers" "mz:HEADERS|NAME" "s:$PROTOCOL:8" id:1421140;
+MainRule "rx:[\\n\\r]" "msg:CRS 921150 HTTP Header Injection Attack via payload (CR/LF detected)" "mz:ARGS|BODY|NAME" "s:$PROTOCOL:8" id:921150;
+MainRule "rx:[\\n\\r]" "msg:CRS 921190 HTTP Splitting (CR/LF in request filename detected)" "mz:URL" "s:$PROTOCOL:8" id:921190;
+MainRule "rx:^[^!&\\(\\):<>\\|~]*\\)[\\s\\x0b]*(?:\\((?:[^!&\\(\\),<->\\|~]+[<>~]?=|[\\s\\x0b]*[!&\\|][\\s\\x0b]*[\\(\\)]?[\\s\\x0b]*)|\\)[\\s\\x0b]*\\([\\s\\x0b]*[!&\\|][\\s\\x0b]*|[!&\\|][\\s\\x0b]*\\([^!&\\(\\),<->\\|~]+[<>~]?=[^!&\\(\\):<>\\|~]*)" "msg:CRS 921200 LDAP Injection Attack [LOST t:htmlentitydecode]" "mz:$HEADERS_VAR:Cookie|ARGS|BODY" "s:$PROTOCOL:8" id:921200;
+MainRule "rx:^[^!&\\(\\):<>\\|~]*\\)[\\s\\x0b]*(?:\\((?:[^!&\\(\\),<->\\|~]+[<>~]?=|[\\s\\x0b]*[!&\\|][\\s\\x0b]*[\\(\\)]?[\\s\\x0b]*)|\\)[\\s\\x0b]*\\([\\s\\x0b]*[!&\\|][\\s\\x0b]*|[!&\\|][\\s\\x0b]*\\([^!&\\(\\),<->\\|~]+[<>~]?=[^!&\\(\\):<>\\|~]*)" "msg:CRS 921200 (names) LDAP Injection Attack [LOST t:htmlentitydecode]" "mz:ARGS|BODY|NAME" "s:$PROTOCOL:8" id:1421200;
+MainRule "rx:(?i)^[^\\s\\x0b,;]+[\\s\\x0b,;].*?(?:application/(?:.+\\+)?json|(?:application/(?:soap\\+)?|text/)xml)" "msg:CRS 921421 Content-Type header: Dangerous content type outside the mime type declaration" "mz:$HEADERS_VAR:content-type" "s:$PROTOCOL:8" id:921421;
+MainRule "rx:(?i)unix:[^|]*\\|" "msg:CRS 921240 mod_proxy attack attempt detected" "mz:URL|ARGS" "s:$PROTOCOL:8" id:921240;
+MainRule "rx:(?i)^1\\x24" "msg:CRS 921250 Old Cookies V1 usage attempt detected" "mz:$HEADERS_VAR:Cookie" "s:$PROTOCOL:8" id:921250;
+MainRule "rx:[\\n\\r]" "msg:CRS 921151 HTTP Header Injection Attack via payload (CR/LF detected) [PL2]" "mz:ARGS" "s:$PROTOCOL:8" id:921151;
+MainRule "rx:(?i)^[^\\s\\x0b,;]+[\\s\\x0b,;].*?\\b(?:((?:tex|multipar)t|application)|((?:audi|vide)o|image|cs[sv]|(?:vn|relate)d|p(?:df|lain)|json|(?:soa|cs)p|x(?:ml|-www-form-urlencoded)|form-data|x-amf|(?:octe|repor)t|stream)|([\\+/]))\\b" "msg:CRS 921422 Content-Type header: Dangerous content type outside the mime type declaration [PL2]" "mz:$HEADERS_VAR:content-type" "s:$PROTOCOL:8" id:921422;
+MainRule "rx:(][^\\]]+\\x24|][^\\]]+\\[)" "msg:CRS 921210 HTTP Parameter Pollution after detecting bogus char after parameter array [PL3]" "mz:ARGS|BODY|NAME" "s:$PROTOCOL:8" id:921210;
+MainRule "rx:\\[" "msg:CRS 921220 HTTP Parameter Pollution possible via array notation [PL4]" "mz:ARGS|BODY|NAME" "s:$PROTOCOL:8" id:921220;

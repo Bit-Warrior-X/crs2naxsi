@@ -1,0 +1,45 @@
+# Auto-converted from CRS REQUEST-920-PROTOCOL-ENFORCEMENT.conf by crs2naxsi.py
+# Review before production use. Whitelist with wl:<crs_id>
+
+MainRule negative "rx:(?i)^(?:connect (?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\.?(?::[0-9]+)?|[\\--9A-Z_a-z]+:[0-9]+)|options \\*|[a-z]{3,10}[\\s\\x0b]+(?:[0-9A-Z_a-z]{3,7}?://[\\--9A-Z_a-z]*(?::[0-9]+)?)?/[^#\\?]*(?:\\?[^\\s\\x0b#]*)?(?:#[^\\s\\x0b]*)?)[\\s\\x0b]+[\\.-9A-Z_a-z]+\\x24" "msg:CRS 920100 Invalid HTTP Request Line" "mz:URL|ARGS" "s:$PROTOCOL:2" id:920100;
+MainRule negative "rx:(?i)^(?:&(?:(?:[acegilnorsuz]acut|[aeiou]grav|[aino]tild)e|[c-elnr-tz]caron|(?:[cgklnr-t]cedi|[aeiouy]um)l|[aceg-josuwy]circ|[au]ring|a(?:mp|pos)|nbsp|oslash);|[^\\x22\\x27;=\\x5c])*\\x24" "msg:CRS 920120 Attempted multipart/form-data bypass" "mz:FILE_EXT" "s:$PROTOCOL:8" id:920120;
+MainRule negative "rx:^\\d+\\x24" "msg:CRS 920160 Content-Length HTTP header is not numeric" "mz:$HEADERS_VAR:content-length" "s:$PROTOCOL:8" id:920160;
+MainRule "rx:(\\d+)-(\\d+)" "msg:CRS 920190 Range: Invalid Last Byte Value [chain head]" "mz:$HEADERS_VAR:range" "s:$PROTOCOL:2" id:920190;
+MainRule "rx:\\b(?:keep-alive|close),\\s?(?:keep-alive|close)\\b" "msg:CRS 920210 Multiple/Conflicting Connection Header Data Found" "mz:$HEADERS_VAR:connection" "s:$PROTOCOL:2" id:920210;
+MainRule "rx:(?i)%uff[0-9a-f]{2}" "msg:CRS 920260 Unicode Full/Half Width Abuse Attack Attempt" "mz:URL|ARGS|BODY" "s:$PROTOCOL:2" id:920260;
+MainRule "rx:\\x00" "msg:CRS 920270 Invalid character in request (null character)" "mz:URL|ARGS|HEADERS|BODY" "s:$PROTOCOL:8" id:920270;
+MainRule "rx:\\x00" "msg:CRS 920270 (names) Invalid character in request (null character)" "mz:ARGS|BODY|NAME" "s:$PROTOCOL:8" id:1420270;
+MainRule "rx:^\\x24" "msg:CRS 920290 Empty Host Header" "mz:$HEADERS_VAR:host" "s:$PROTOCOL:8" id:920290;
+MainRule "rx:^\\x24" "msg:CRS 920310 Request Has an Empty Accept Header [chain head]" "mz:$HEADERS_VAR:accept" "s:$PROTOCOL:1" id:920310;
+MainRule "rx:^\\x24" "msg:CRS 920311 Request Has an Empty Accept Header [chain head]" "mz:$HEADERS_VAR:accept" "s:$PROTOCOL:1" id:920311;
+MainRule "rx:^\\x24" "msg:CRS 920330 Empty User Agent Header" "mz:$HEADERS_VAR:user-agent" "s:$PROTOCOL:1" id:920330;
+MainRule negative "rx:^0\\x24" "msg:CRS 920340 Content-Type header missing from request with non-zero Content-Length [chain head]" "mz:$HEADERS_VAR:content-length" "s:$PROTOCOL:8" id:920340;
+MainRule "rx:(?:^([\\d.]+|\\[[\\da-f:]+\\]|[\\da-f:]+)(:[\\d]+)?\\x24)" "msg:CRS 920350 Host header is a numeric IP address" "mz:$HEADERS_VAR:host" "s:$PROTOCOL:2" id:920350;
+MainRule negative "rx:(?i)^[\\w/.+*-]+(?:\\s?;\\s*(?:action|boundary|charset|component|start(?:-info)?|type|version)\\s?=\\s?[\\x27\\x22\\w.()+,/:=?<>@#*-]+)*\\x24" "msg:CRS 920470 Illegal Content-Type header" "mz:$HEADERS_VAR:content-type" "s:$PROTOCOL:8" id:920470;
+MainRule "rx:^[^;\\s]+" "msg:CRS 920420 Request content type is not allowed by policy [chain head]" "mz:$HEADERS_VAR:content-type" "s:$PROTOCOL:8" id:920420;
+MainRule "rx:charset\\s*=\\s*[\\x22\\x27]?([^;\\x22\\x27\\s]+)" "msg:CRS 920480 Request content type charset is not allowed by policy [chain head]" "mz:$HEADERS_VAR:content-type" "s:$PROTOCOL:8" id:920480;
+MainRule "rx:(?i)charset.*?charset" "msg:CRS 920530 Multiple charsets detected in content type header" "mz:$HEADERS_VAR:content-type" "s:$PROTOCOL:8" id:920530;
+MainRule "rx:\\.([^.]+)\\x24" "msg:CRS 920440 URL file extension is restricted by policy [chain head]" "mz:URL" "s:$PROTOCOL:8" id:920440;
+MainRule "rx:\\.[^.~]+~(?:/.*|)\\x24" "msg:CRS 920500 Attempt to access a backup or working file" "mz:URL" "s:$PROTOCOL:8" id:920500;
+MainRule "rx:(?i)^.*\\x24" "msg:CRS 920450 HTTP header is restricted by policy (%{MATCHED_VAR}) [chain head]" "mz:HEADERS|NAME" "s:$PROTOCOL:8" id:920450;
+MainRule negative "rx:(?i)^(?:(?:\\*|[^!\\x22\\(\\),/:-\\?\\[-\\]\\{\\}]+)/(?:\\*|[^!\\x22\\(\\),/:-\\?\\[-\\]\\{\\}]+)|\\*)(?:[\\s\\x0b]*;[\\s\\x0b]*(?:charset[\\s\\x0b]*=[\\s\\x0b]*\\x22?(?:iso-8859-15?|utf-8|windows-1252)\\b\\x22?|(?:[^\\s\\x0b-\\x22\\(\\),/:-\\?\\[-\\]c\\{\\}]|c(?:[^!\\x22\\(\\),/:-\\?\\[-\\]h\\{\\}]|h(?:[^!\\x22\\(\\),/:-\\?\\[-\\]a\\{\\}]|a(?:[^!\\x22\\(\\),/:-\\?\\[-\\]r\\{\\}]|r(?:[^!\\x22\\(\\),/:-\\?\\[-\\]s\\{\\}]|s(?:[^!\\x22\\(\\),/:-\\?\\[-\\]e\\{\\}]|e[^!\\x22\\(\\),/:-\\?\\[-\\]t\\{\\}]))))))[^!\\x22\\(\\),/:-\\?\\[-\\]\\{\\}]*[\\s\\x0b]*=[\\s\\x0b]*[^!\\(\\),/:-\\?\\[-\\]\\{\\}]+);?)*(?:[\\s\\x0b]*,[\\s\\x0b]*(?:(?:\\*|[^!\\x22\\(\\),/:-\\?\\[-\\]\\{\\}]+)/(?:\\*|[^!\\x22\\(\\),/:-\\?\\[-\\]\\{\\}]+)|\\*)(?:[\\s\\x0b]*;[\\s\\x0b]*(?:charset[\\s\\x0b]*=[\\s\\x0b]*\\x22?(?:iso-8859-15?|utf-8|windows-1252)\\b\\x22?|(?:[^\\s\\x0b-\\x22\\(\\),/:-\\?\\[-\\]c\\{\\}]|c(?:[^!\\x22\\(\\),/:-\\?\\[-\\]h\\{\\}]|h(?:[^!\\x22\\(\\),/:-\\?\\[-\\]a\\{\\}]|a(?:[^!\\x22\\(\\),/:-\\?\\[-\\]r\\{\\}]|r(?:[^!\\x22\\(\\),/:-\\?\\[-\\]s\\{\\}]|s(?:[^!\\x22\\(\\),/:-\\?\\[-\\]e\\{\\}]|e[^!\\x22\\(\\),/:-\\?\\[-\\]t\\{\\}]))))))[^!\\x22\\(\\),/:-\\?\\[-\\]\\{\\}]*[\\s\\x0b]*=[\\s\\x0b]*[^!\\(\\),/:-\\?\\[-\\]\\{\\}]+);?)*)*\\x24" "msg:CRS 920600 Illegal Accept header: charset parameter" "mz:$HEADERS_VAR:accept" "s:$PROTOCOL:8" id:920600;
+MainRule "rx:(?i)\\x5cu[0-9a-f]{4}" "msg:CRS 920540 Possible Unicode character bypass detected" "mz:URL|ARGS|HEADERS|BODY" "s:$PROTOCOL:8" id:920540;
+MainRule "rx:(?i)\\x5cu[0-9a-f]{4}" "msg:CRS 920540 (names) Possible Unicode character bypass detected" "mz:ARGS|BODY|NAME" "s:$PROTOCOL:8" id:1420540;
+MainRule "str:#" "msg:CRS 920610 Raw (unencoded) fragment in request URI" "mz:URL|ARGS" "s:$PROTOCOL:8" id:920610;
+MainRule "rx:^bytes=(?:(?:\\d+)?-(?:\\d+)?\\s*,?\\s*){6}" "msg:CRS 920200 Range: Too many fields (6 or more) [PL2] [chain head]" "mz:$HEADERS_VAR:range" "s:$PROTOCOL:2" id:920200;
+MainRule "rx:\\.pdf\\x24" "msg:CRS 920201 Range: Too many fields for pdf request (63 or more) [PL2] [chain head]" "mz:URL" "s:$PROTOCOL:2" id:920201;
+MainRule "rx:%[0-9a-fA-F]{2}" "msg:CRS 920230 Multiple URL Encoding Detected [PL2]" "mz:ARGS|BODY" "s:$PROTOCOL:2" id:920230;
+MainRule "rx:[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]" "msg:CRS 920271 Invalid character in request (non printable characters) [PL2]" "mz:URL|ARGS|HEADERS|BODY" "s:$PROTOCOL:8" id:920271;
+MainRule "rx:[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]" "msg:CRS 920271 (names) Invalid character in request (non printable characters) [PL2]" "mz:ARGS|BODY|NAME" "s:$PROTOCOL:8" id:1420271;
+MainRule "rx:[\\x27\\x22;=\\x5c]" "msg:CRS 920121 Attempted multipart/form-data bypass [PL2]" "mz:FILE_EXT" "s:$PROTOCOL:8" id:920121;
+MainRule "rx:(?i)^.*\\x24" "msg:CRS 920451 HTTP header is restricted by policy (%{MATCHED_VAR}) [PL2] [chain head]" "mz:HEADERS|NAME" "s:$PROTOCOL:8" id:920451;
+MainRule "rx:[\\x00-\\x1f\\x27\\x7f-\\xff]" "msg:CRS 920272 Invalid character in request (outside of printable chars below ascii 127) [PL3]" "mz:URL|ARGS|HEADERS|BODY" "s:$PROTOCOL:8" id:920272;
+MainRule "rx:[\\x00-\\x1f\\x27\\x7f-\\xff]" "msg:CRS 920272 (names) Invalid character in request (outside of printable chars below ascii 127) [PL3]" "mz:ARGS|BODY|NAME" "s:$PROTOCOL:8" id:1420272;
+MainRule negative "rx:(?i)br|compress|deflate|(?:pack200-)?gzip|identity|\\*|^\\x24|aes128gcm|exi|zstd|x-(?:compress|gzip)" "msg:CRS 920521 Illegal Accept-Encoding header [PL3]" "mz:$HEADERS_VAR:accept-encoding" "s:$PROTOCOL:8" id:920521;
+MainRule "rx:\\.pdf\\x24" "msg:CRS 920202 Range: Too many fields for pdf request (6 or more) [PL4] [chain head]" "mz:URL" "s:$PROTOCOL:2" id:920202;
+MainRule "rx:[^\\x26\\x2c-\\x2e\\x30-\\x3a\\x3d\\x41-\\x5a\\x5f\\x61-\\x7a]" "msg:CRS 920273 Invalid character in request (outside of very strict set) [PL4]" "mz:ARGS|BODY" "s:$PROTOCOL:8" id:920273;
+MainRule "rx:[^\\x26\\x2c-\\x2e\\x30-\\x3a\\x3d\\x41-\\x5a\\x5f\\x61-\\x7a]" "msg:CRS 920273 (names) Invalid character in request (outside of very strict set) [PL4]" "mz:ARGS|BODY|NAME" "s:$PROTOCOL:8" id:1420273;
+MainRule "rx:[^\\x20\\x22\\x26\\x2a-\\x3b\\x3d\\x41-\\x5a\\x5f\\x61-\\x7a]" "msg:CRS 920274 Invalid character in request headers (outside of very strict set) [PL4]" "mz:HEADERS" "s:$PROTOCOL:8" id:920274;
+MainRule negative "rx:^(?:\\?[01])?\\x24" "msg:CRS 920275 Invalid character in request headers (outside of very strict set) [PL4]" "mz:$HEADERS_VAR:sec-fetch-user|$HEADERS_VAR:sec-ch-ua-mobile" "s:$PROTOCOL:8" id:920275;
+MainRule "rx:(?i)(?:^|[^\\x5c])\\x5c[cdeghijklmpqwxyz123456789]" "msg:CRS 920460 Abnormal character escapes in request [PL4] [LOST t:htmlentitydecode]" "mz:URL|ARGS|HEADERS|BODY" "s:$PROTOCOL:8" id:920460;
+MainRule "rx:(?i)(?:^|[^\\x5c])\\x5c[cdeghijklmpqwxyz123456789]" "msg:CRS 920460 (names) Abnormal character escapes in request [PL4] [LOST t:htmlentitydecode]" "mz:ARGS|BODY|NAME" "s:$PROTOCOL:8" id:1420460;
