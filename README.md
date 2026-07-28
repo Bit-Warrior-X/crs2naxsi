@@ -199,11 +199,3 @@ global wl:id with no match zone.
 
 Always re-run LearningMode after regenerating.
 
-
-12. Project layout
-------------------
-
-  crs2naxsi.py              Converter
-  coreruleset/              OWASP CRS sources (rules/*.conf, *.data)
-  crs2naxsi_rules/          Generated NAXSI rules + helpers
-  ReadMe.txt                This file
