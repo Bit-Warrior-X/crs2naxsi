@@ -26,9 +26,10 @@ Convert [OWASP Core Rule Set](https://coreruleset.org/) (ModSecurity SecLang) in
 ```bash
 cd crs2naxsi
 python3 crs2naxsi.py --self-test
+# Default is --max-paranoia 1 (CRS default; safer for production)
 python3 crs2naxsi.py coreruleset/rules crs2naxsi_rules
 
-# Only paranoia levels 1–2 (fewer / safer rules):
+# Include PL2 as well (more coverage, more FP risk):
 python3 crs2naxsi.py --max-paranoia 2 coreruleset/rules crs2naxsi_rules_pl2
 ```
 
@@ -41,6 +42,7 @@ python3 crs2naxsi.py --max-paranoia 2 coreruleset/rules crs2naxsi_rules_pl2
 python3 crs2naxsi.py [-h] [--max-paranoia {1,2,3,4}] [--self-test] [rules_dir] [out_dir]
 ```
 
+`--max-paranoia` defaults to **1**. PL3/PL4 (and some PL2) rules can block normal browser traffic when removed from CRS’s anomaly/skipAfter context.
 ---
 
 ## What gets converted
@@ -69,9 +71,10 @@ python3 crs2naxsi.py [-h] [--max-paranoia {1,2,3,4}] [--self-test] [rules_dir] [
 ### Other behavior
 
 - Non-chained rules in phases **1–4**
-- **Chain heads** when the parent has a usable operator (TX/MATCHED_VARS children dropped)
-- Oversized regexes split into multiple MainRules (`id`, `id*100+n`, …)
+- **Chain heads** when the parent has a usable operator (TX/MATCHED_VARS children dropped); heads that match benign cdnrays are skipped
+- Oversized regexes split into multiple MainRules (`id`, `id*100+n`, …); unsafe fragments dropped via cdnray check
 - `ARGS_NAMES` / `BODY\|NAME` split into separate rules (`id+500000`) — NAXSI treats `NAME` as a rule-wide flag
+- Zone-aware **cdnray guard** rejects catch-alls, unsafe negative rules, and over-broad chunk fragments before emit
 
 CRS rule ids are preserved (900000+ range), so NAXSI_FMT `id0=942152` maps to CRS docs and to:
 
@@ -97,15 +100,18 @@ Generated under [`crs2naxsi_rules/`](crs2naxsi_rules/):
 | `crs-machinery.notes` | Why 901/949/959/980/etc. emit few/no MainRules |
 | `skipped.log` | Every skipped CRS id + reason (tab-separated) |
 
-### Typical stats (OWASP CRS ~4.29, `--max-paranoia 4`)
+### Typical stats (OWASP CRS ~4.29, default `--max-paranoia 1`)
 
 | Metric | Approx. |
 |---|---|
-| CRS rules converted | ~312 (+ ~4 libinjection notes) |
-| Adapted from `RESPONSE_*` | ~57 |
-| Salvaged chain heads | ~31 |
-| Skipped | ~300 (mostly `ctl`/`skipAfter` + TX/`@eq`/`@gt`) |
+| CRS rules converted | ~185 (+ libinjection notes) |
+| Adapted from `RESPONSE_*` | ~53 |
+| Salvaged chain heads | ~10 |
+| Skipped (paranoia > 1) | ~131 |
+| Skipped (degenerate / unsafe chunks) | ~30+ |
+| Skipped (ctl/skipAfter, operators, …) | ~300 |
 
+At `--max-paranoia 2` expect ~1000+ MainRules; at PL4 historically ~312 convertible heads before cdnray filtering.
 ---
 
 ## Score families (`CheckRule`)
@@ -244,14 +250,16 @@ Prefer narrow whitelists (specific `$ARGS_VAR` / `$BODY_VAR` / `$URL`) over glob
 ## Known limitations
 
 - **No CRS anomaly engine** — NAXSI uses per-hit scores + `CheckRule` thresholds, not `TX:inbound_anomaly_score_plN`.
-- **`ctl` / `skipAfter` / paranoia gates** — skipped (~200 ids). Use `--max-paranoia` instead of CRS `TX:DETECTION_PARANOIA_LEVEL`.
-- **Chained rules** — only convertible heads are emitted; refinement children are lost.
+- **`ctl` / `skipAfter` / paranoia gates** — skipped (~200 ids). Use `--max-paranoia` instead of CRS `TX:DETECTION_PARANOIA_LEVEL` (default **1**).
+- **Chained rules** — only convertible heads are emitted; refinement children are lost. Heads that match benign cdnrays are dropped as `skip:degenerate`.
 - **Lost transformations** (`base64Decode`, `cmdLine`, `htmlEntityDecode`, …) are marked inline as `[LOST t:…]`; those rules are weaker against evasion.
 - **`@eq` / `@gt` / `@ge`** on `&HEADER` counts, `REQUEST_METHOD`, `RESPONSE_STATUS`, and TX-macro `@within` are not expressible as MainRules.
 - **Quarantined** standalone-dangerous rules (e.g. `921170` HPP) — see `QUARANTINE` in [`crs2naxsi.py`](crs2naxsi.py) / `skipped.log`.
-- **Huge regexes** are chunked; a few fragments may match slightly more broadly when a shared suffix had to be dropped to fit nginx’s ~4KB token limit.
-- **Response-adapted rules** are not a substitute for response body scanning.
+- **Huge regexes** are chunked by UTF-8 **byte** length (`MAX_PAT=3400`) so Unicode-heavy CRS patterns stay under nginx’s ~4KB config-token limit. Fragments that match benign cdnrays are dropped (`skip:degenerate_chunk`).
+- **`$` in patterns is left alone** — rewriting to `\x24` turned PCRE anchors into literal dollars and made some `negative` rules fire on all traffic.
+- **Response-adapted rules** are not a substitute for response body scanning; treat `$LEAKAGE` / `$WEBSHELL` carefully (log-only is often safer).
 
+See [`AUDIT_FIXES.md`](AUDIT_FIXES.md) for the live nginx+naxsi audit that drove these guards.
 ---
 
 ## Whitelist / log tips
@@ -270,11 +278,12 @@ Messages may include `[PL2]`, `[chain head]`, `[LOST t:…]`, `[adapted CRS resp
 
 ```bash
 git -C coreruleset pull   # or replace the CRS tree
+python3 crs2naxsi.py --self-test
 python3 crs2naxsi.py coreruleset/rules crs2naxsi_rules
 diff -ru crs2naxsi_rules.bak crs2naxsi_rules   # review before deploy
 ```
 
-Always re-run **LearningMode** after regenerating.
+`nginx -t` alone is **not** enough: broken conversions can load cleanly while blocking all traffic. After deploy, run a benign/attack matrix (see [`validate_traffic.sh`](validate_traffic.sh)) and always re-run **LearningMode**.
 
 ---
 
@@ -301,7 +310,10 @@ crs2naxsi/
 ├── crs2naxsi.py           # Converter
 ├── checkrules.txt         # Documented CheckRule snippet
 ├── README.md              # This file
+├── AUDIT_FIXES.md         # Live nginx+naxsi audit findings that drove guards
+├── validate_traffic.sh    # Benign/attack HTTP smoke matrix (post-deploy)
 ├── coreruleset/           # OWASP CRS sources (rules/*.conf, *.data)
+├── claude/                # Audit working copy (reference; do not deploy)
 └── crs2naxsi_rules/       # Generated NAXSI rules + helpers
 ```
 

@@ -48,48 +48,72 @@
 913018	ctl/skipAfter control rule
 920011	ctl/skipAfter control rule
 920012	ctl/skipAfter control rule
+920100	degenerate: negative rule fails 9/9 benign cdnrays (e.g. ['/', '/index.html']) -> would block legitimate traffic
 920170	no mappable variables
 920171	no mappable variables
 920180	no mappable variables
 920181	operator @eq
+920190	degenerate: chain head matches 1/1 benign cdnrays (e.g. ['bytes=0-1023']) -> discriminating child condition was lost
 920660	operator @gt
 920250	quarantined: broad/stateful when standalone
 920280	ctl/skipAfter control rule
+920340	degenerate: negative rule fails 1/2 benign cdnrays (e.g. ['1234']) -> would block legitimate traffic
 920380	operator @eq
 920360	operator @eq
 920370	operator @eq
 920390	operator @eq
 920400	operator @eq
 920410	operator @eq
+920420	degenerate: chain head matches 4/4 benign cdnrays (e.g. ['application/json', 'application/x-www-form-urlencoded']) -> discriminating child condition was lost
+920480	degenerate: chain head matches 1/4 benign cdnrays (e.g. ['text/plain;charset=UTF-8']) -> discriminating child condition was lost
 920640	operator @gt
 920430	operator @within with TX macro
+920440	degenerate: chain head matches 1/4 benign cdnrays (e.g. ['/index.html']) -> discriminating child condition was lost
+920450	degenerate: trivial catch-all pattern '(?i)^.*$'
 920520	operator @gt
 920539	ctl/skipAfter control rule
 920620	operator @gt
 920013	ctl/skipAfter control rule
 920014	ctl/skipAfter control rule
-920320	operator @eq
-920240	no mappable variables
-920650	operator @eq
+920200	paranoia-level/2 > max 1
+920201	paranoia-level/2 > max 1
+920230	paranoia-level/2 > max 1
+920271	paranoia-level/2 > max 1
+920320	paranoia-level/2 > max 1
+920121	paranoia-level/2 > max 1
+920451	paranoia-level/2 > max 1
+920240	paranoia-level/2 > max 1
+920650	paranoia-level/2 > max 1
 920015	ctl/skipAfter control rule
 920016	ctl/skipAfter control rule
-920300	operator @eq
-920490	operator @ge
-920510	operator @gt
+920272	paranoia-level/3 > max 1
+920300	paranoia-level/3 > max 1
+920490	paranoia-level/3 > max 1
+920510	paranoia-level/3 > max 1
+920521	paranoia-level/3 > max 1
 920017	ctl/skipAfter control rule
 920018	ctl/skipAfter control rule
+920202	paranoia-level/4 > max 1
+920273	paranoia-level/4 > max 1
+920274	paranoia-level/4 > max 1
+920275	paranoia-level/4 > max 1
+920460	paranoia-level/4 > max 1
 921011	ctl/skipAfter control rule
 921012	ctl/skipAfter control rule
 921160	quarantined: broad/stateful when standalone
 921013	ctl/skipAfter control rule
 921014	ctl/skipAfter control rule
+921151	paranoia-level/2 > max 1
+921422	paranoia-level/2 > max 1
 921015	ctl/skipAfter control rule
 921016	ctl/skipAfter control rule
-921230	operator @gt
+921230	paranoia-level/3 > max 1
 921170	quarantined: broad/stateful when standalone
-921180	operator @gt
+921180	paranoia-level/3 > max 1
+921210	paranoia-level/3 > max 1
 921017	ctl/skipAfter control rule
 921018	ctl/skipAfter control rule
+921220	paranoia-level/4 > max 1
 922100	operator @eq
 922140	operator @gt
 922110	TX/collection variable
@@ -97,6 +121,7 @@
 930012	ctl/skipAfter control rule
 930013	ctl/skipAfter control rule
 930014	ctl/skipAfter control rule
+930121	paranoia-level/2 > max 1
 930015	ctl/skipAfter control rule
 930016	ctl/skipAfter control rule
 930017	ctl/skipAfter control rule
@@ -105,32 +130,103 @@
 931012	ctl/skipAfter control rule
 931013	ctl/skipAfter control rule
 931014	ctl/skipAfter control rule
+931130	paranoia-level/2 > max 1
+931131	paranoia-level/2 > max 1
 931015	ctl/skipAfter control rule
 931016	ctl/skipAfter control rule
 931017	ctl/skipAfter control rule
 931018	ctl/skipAfter control rule
 932011	ctl/skipAfter control rule
 932012	ctl/skipAfter control rule
+932230	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932230	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932230	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932230	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932230	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932230	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932230	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932230	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932230	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932230	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932230	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932230	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932230	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932250	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932250	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932250	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932250	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932250	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932250	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932250	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932250	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932250	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932250	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932250	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932250	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
+932250	degenerate chunk dropped: chain head matches 1/18 benign cdnrays (e.g. ['sid=abc123; theme=dark']) -> discriminating child condition was lost
 932013	ctl/skipAfter control rule
 932014	ctl/skipAfter control rule
+932371	paranoia-level/2 > max 1
+932231	paranoia-level/2 > max 1
+932131	paranoia-level/2 > max 1
+932200	paranoia-level/2 > max 1
+932205	paranoia-level/2 > max 1
+932206	paranoia-level/2 > max 1
+932207	paranoia-level/2 > max 1
+932220	paranoia-level/2 > max 1
+932240	paranoia-level/2 > max 1
+932281	paranoia-level/2 > max 1
+932210	paranoia-level/2 > max 1
+932271	paranoia-level/2 > max 1
+932300	paranoia-level/2 > max 1
+932310	paranoia-level/2 > max 1
+932320	paranoia-level/2 > max 1
+932236	paranoia-level/2 > max 1
+932239	paranoia-level/2 > max 1
+932161	paranoia-level/2 > max 1
+932390	paranoia-level/2 > max 1
 932015	ctl/skipAfter control rule
 932016	ctl/skipAfter control rule
+932232	paranoia-level/3 > max 1
+932237	paranoia-level/3 > max 1
+932238	paranoia-level/3 > max 1
+932290	paranoia-level/3 > max 1
+932190	paranoia-level/3 > max 1
+932350	paranoia-level/3 > max 1
+932301	paranoia-level/3 > max 1
+932311	paranoia-level/3 > max 1
+932321	paranoia-level/3 > max 1
+932331	paranoia-level/3 > max 1
 932017	ctl/skipAfter control rule
 932018	ctl/skipAfter control rule
 933011	ctl/skipAfter control rule
 933012	ctl/skipAfter control rule
 933013	ctl/skipAfter control rule
 933014	ctl/skipAfter control rule
+933151	paranoia-level/2 > max 1
+933152	paranoia-level/2 > max 1
+933153	paranoia-level/2 > max 1
 933015	ctl/skipAfter control rule
 933016	ctl/skipAfter control rule
+933131	paranoia-level/3 > max 1
+933161	paranoia-level/3 > max 1
+933111	paranoia-level/3 > max 1
+933190	paranoia-level/3 > max 1
+933211	paranoia-level/3 > max 1
 933017	ctl/skipAfter control rule
 933018	ctl/skipAfter control rule
 934011	ctl/skipAfter control rule
 934012	ctl/skipAfter control rule
 934013	ctl/skipAfter control rule
 934014	ctl/skipAfter control rule
+934101	paranoia-level/2 > max 1
+934120	paranoia-level/2 > max 1
+934140	paranoia-level/2 > max 1
+934180	paranoia-level/2 > max 1
+934220	paranoia-level/2 > max 1
 934015	ctl/skipAfter control rule
 934016	ctl/skipAfter control rule
+934210	paranoia-level/3 > max 1
 934017	ctl/skipAfter control rule
 934018	ctl/skipAfter control rule
 941011	ctl/skipAfter control rule
@@ -138,6 +234,13 @@
 941010	ctl/skipAfter control rule
 941013	ctl/skipAfter control rule
 941014	ctl/skipAfter control rule
+941101	paranoia-level/2 > max 1
+941150	paranoia-level/2 > max 1
+941181	paranoia-level/2 > max 1
+941320	paranoia-level/2 > max 1
+941330	paranoia-level/2 > max 1
+941340	paranoia-level/2 > max 1
+941380	paranoia-level/2 > max 1
 941015	ctl/skipAfter control rule
 941016	ctl/skipAfter control rule
 941017	ctl/skipAfter control rule
@@ -146,10 +249,50 @@
 942012	ctl/skipAfter control rule
 942013	ctl/skipAfter control rule
 942014	ctl/skipAfter control rule
+942120	paranoia-level/2 > max 1
+942130	paranoia-level/2 > max 1
+942131	paranoia-level/2 > max 1
+942150	paranoia-level/2 > max 1
+942180	paranoia-level/2 > max 1
+942200	paranoia-level/2 > max 1
+942210	paranoia-level/2 > max 1
+942260	paranoia-level/2 > max 1
+942300	paranoia-level/2 > max 1
+942310	paranoia-level/2 > max 1
+942330	paranoia-level/2 > max 1
+942340	paranoia-level/2 > max 1
+942361	paranoia-level/2 > max 1
+942362	paranoia-level/2 > max 1
+942370	paranoia-level/2 > max 1
+942380	paranoia-level/2 > max 1
+942390	paranoia-level/2 > max 1
+942400	paranoia-level/2 > max 1
+942410	paranoia-level/2 > max 1
+942470	paranoia-level/2 > max 1
+942480	paranoia-level/2 > max 1
+942430	paranoia-level/2 > max 1
+942440	paranoia-level/2 > max 1
+942450	paranoia-level/2 > max 1
+942510	paranoia-level/2 > max 1
+942520	paranoia-level/2 > max 1
+942521	paranoia-level/2 > max 1
+942522	paranoia-level/2 > max 1
+942101	paranoia-level/2 > max 1
+942152	paranoia-level/2 > max 1
+942321	paranoia-level/2 > max 1
 942015	ctl/skipAfter control rule
 942016	ctl/skipAfter control rule
+942251	paranoia-level/3 > max 1
+942490	paranoia-level/3 > max 1
+942420	paranoia-level/3 > max 1
+942431	paranoia-level/3 > max 1
+942460	paranoia-level/3 > max 1
+942511	paranoia-level/3 > max 1
+942530	paranoia-level/3 > max 1
 942017	ctl/skipAfter control rule
 942018	ctl/skipAfter control rule
+942421	paranoia-level/4 > max 1
+942432	paranoia-level/4 > max 1
 943011	ctl/skipAfter control rule
 943012	ctl/skipAfter control rule
 943013	ctl/skipAfter control rule
@@ -162,10 +305,18 @@
 944012	ctl/skipAfter control rule
 944013	ctl/skipAfter control rule
 944014	ctl/skipAfter control rule
+944151	paranoia-level/2 > max 1
+944200	paranoia-level/2 > max 1
+944210	paranoia-level/2 > max 1
+944240	paranoia-level/2 > max 1
+944250	paranoia-level/2 > max 1
+944260	paranoia-level/2 > max 1
 944015	ctl/skipAfter control rule
 944016	ctl/skipAfter control rule
+944300	paranoia-level/3 > max 1
 944017	ctl/skipAfter control rule
 944018	ctl/skipAfter control rule
+944152	paranoia-level/4 > max 1
 949052	operator @ge
 949152	operator @ge
 949053	operator @ge
@@ -198,7 +349,7 @@
 950012	ctl/skipAfter control rule
 950013	ctl/skipAfter control rule
 950014	ctl/skipAfter control rule
-950100	no mappable variables
+950100	paranoia-level/2 > max 1
 950015	ctl/skipAfter control rule
 950016	ctl/skipAfter control rule
 950017	ctl/skipAfter control rule
@@ -227,6 +378,7 @@
 953012	ctl/skipAfter control rule
 953013	ctl/skipAfter control rule
 953014	ctl/skipAfter control rule
+953101	paranoia-level/2 > max 1
 953015	ctl/skipAfter control rule
 953016	ctl/skipAfter control rule
 953017	ctl/skipAfter control rule
@@ -237,6 +389,7 @@
 954130	no mappable variables
 954013	ctl/skipAfter control rule
 954014	ctl/skipAfter control rule
+954101	paranoia-level/2 > max 1
 954015	ctl/skipAfter control rule
 954016	ctl/skipAfter control rule
 954017	ctl/skipAfter control rule
@@ -246,6 +399,7 @@
 955012	ctl/skipAfter control rule
 955013	ctl/skipAfter control rule
 955014	ctl/skipAfter control rule
+955350	paranoia-level/2 > max 1
 955015	ctl/skipAfter control rule
 955016	ctl/skipAfter control rule
 955017	ctl/skipAfter control rule
@@ -255,6 +409,7 @@
 956012	ctl/skipAfter control rule
 956013	ctl/skipAfter control rule
 956014	ctl/skipAfter control rule
+956110	paranoia-level/2 > max 1
 956015	ctl/skipAfter control rule
 956016	ctl/skipAfter control rule
 956017	ctl/skipAfter control rule

@@ -142,10 +142,17 @@ NATIVE_TRANSFORMS = {
     "removenulls",
 }
 
-# nginx config token soft limit is 4096; leave room for "rx:" / quotes / mz.
-MAX_PAT = 3900
+# nginx config token hard limit is NGX_CONF_BUFFER (4096 bytes). The MainRule
+# match token is "rx:<pat>" / "str:<pat>", so cap the pattern by UTF-8 bytes
+# (Unicode in CRS SSRF/etc. makes len(str) << byte length).
+# Bisected against nginx+naxsi: ~3661 bytes loads, ~3707 fails — stay under.
+MAX_PAT = 3400
 NAME_ID_OFFSET = 500000
 ALLOWED_PHASES = {"1", "2", "3", "4"}
+
+
+def utf8_len(s: str) -> int:
+    return len(s.encode("utf-8"))
 
 # ------------------------------------------------------------- seclang parse
 
@@ -298,7 +305,10 @@ def paranoia_level(acts: dict) -> int:
 def nginx_safe_regex(rx: str) -> str:
     """
     Make a PCRE pattern safe inside an nginx double-quoted string:
-      - nginx interpolates $var; map every '$' to \\x24 (literal dollar for PCRE)
+      - leave '$' alone (anchors / literal dollars); nginx does NOT interpolate
+        variables in naxsi MainRule args. Rewriting '$' as \\x24 turns the PCRE
+        end-of-string ANCHOR into a literal dollar and silently breaks rules
+        (negative rules then fire on all traffic).
       - map " and ' to hex escapes so the config tokenizer cannot break
       - double every backslash so nginx's unescape pass leaves the regex intact
     """
@@ -306,14 +316,12 @@ def nginx_safe_regex(rx: str) -> str:
     i = 0
     while i < len(rx):
         c = rx[i]
-        # Drop a redundant '\' before '$' — both \$ and $ become \x24.
+        # Preserve '\$' as '\$' (literal dollar in PCRE). Do not rewrite to \x24.
         if c == "\\" and i + 1 < len(rx) and rx[i + 1] == "$":
-            out.append(r"\x24")
+            out.append("\\$")
             i += 2
             continue
-        if c == "$":
-            out.append(r"\x24")
-        elif c == '"':
+        if c == '"':
             out.append(r"\x22")
         elif c == "'":
             out.append(r"\x27")
@@ -327,9 +335,8 @@ def nginx_safe_str(s: str) -> str:
     """Escape a literal str: value for NAXSI (nginx-quoted, not a regex)."""
     out = []
     for c in s:
-        if c == "$":
-            out.append(r"\x24")
-        elif c == '"':
+        # Leave '$' untouched — same reason as nginx_safe_regex.
+        if c == '"':
             out.append(r"\x22")
         elif c == "'":
             out.append(r"\x27")
@@ -469,7 +476,7 @@ def chunk_oversized_regex(pattern: str, max_len: int) -> list[str]:
     """
 
     def safe_len(p: str) -> int:
-        return len(nginx_safe_regex(p))
+        return utf8_len(nginx_safe_regex(p))
 
     if safe_len(pattern) <= max_len:
         return [pattern]
@@ -554,6 +561,186 @@ def chunk_oversized_regex(pattern: str, max_len: int) -> list[str]:
             return packed
 
     return []
+
+
+# ---------------------------------------------------------------- cdnray corpus
+#
+# Benign, zone-appropriate sample values used to reject degenerate rules before
+# they are emitted. A converted rule is unsafe if it matches EVERY benign sample
+# for its zone (catch-all: e.g. a salvaged chain head like `@rx ^.*$`), or if a
+# `negative` rule matches NONE of them (it would then fire on all traffic).
+ZONE_CDNRAY = {
+    "URL": ["/", "/index.html", "/blog/2026/07/my-post", "/api/v1/users"],
+    "ARGS": ["42", "hello world", "price", "anton@example.com", "en-US"],
+    "BODY": ["42", "hello world", "a slightly longer comment body"],
+    # The broad HEADERS zone sees EVERY header value, so its cdnray must be the
+    # union of realistic values (incl. cookies, UA, referer) — otherwise a rule
+    # that mangles cookies passes validation. See HEADER_CDNRAY merge below.
+    "HEADERS": [
+        "example.com", "gzip, deflate, br", "text/html,*/*;q=0.8",
+        "application/json", "en-US,en;q=0.9", "https://example.com/page",
+        "0", "1234", "keep-alive",
+        "sid=abc123; theme=dark", "csrftoken=9f8e7d6c; _ga=GA1.2.33",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        "bytes=0-1023", "max-age=0", "https://example.com/search?q=hello world",
+    ],
+    "NAME": [
+        "id", "sort", "name", "comment", "host", "user-agent", "accept",
+        "content-type", "referer", "cookie", "accept-encoding",
+    ],
+    "FILE_EXT": ["photo.jpg", "document.pdf", "report.xlsx"],
+}
+
+HEADER_CDNRAY = {
+    "host": ["example.com", "www.example.com"],
+    "content-length": ["0", "1234"],
+    "content-type": [
+        "application/json",
+        "application/x-www-form-urlencoded",
+        "multipart/form-data; boundary=----abc",
+        "text/plain;charset=UTF-8",
+    ],
+    "accept": [
+        "*/*",
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,*/*;q=0.8",
+    ],
+    "accept-encoding": ["gzip, deflate, br", "gzip", "identity"],
+    "accept-language": ["en-US,en;q=0.9"],
+    "accept-charset": ["utf-8"],
+    "user-agent": [
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        "curl/8.4.0",
+    ],
+    "referer": ["https://example.com/page?x=1"],
+    "cookie": ["sid=abc123; theme=dark"],
+    "connection": ["keep-alive"],
+    "sec-fetch-user": ["?1"],
+    "sec-ch-ua-mobile": ["?0"],
+    "x-forwarded-for": ["203.0.113.5"],
+    "range": ["bytes=0-1023"],
+}
+
+# Patterns that are never meaningful as standalone NAXSI rules.
+TRIVIAL_PATTERNS = {
+    "^.*$", "^.*", ".*$", ".*", ".+", "^.+$", "^", "$", "(?i)^.*$", "(?i).*",
+}
+
+
+def cdnray_samples(zones: list[str]) -> list[str]:
+    """Collect benign sample strings appropriate to a rule's match zones."""
+    samples: list[str] = []
+    for z in zones:
+        if z.startswith("$HEADERS_VAR:"):
+            hdr = z.split(":", 1)[1].lower()
+            samples += HEADER_CDNRAY.get(hdr, ZONE_CDNRAY["HEADERS"])
+        elif z.startswith("$ARGS_VAR:") or z.startswith("$BODY_VAR:"):
+            samples += ZONE_CDNRAY["ARGS"]
+        elif z in ZONE_CDNRAY:
+            samples += ZONE_CDNRAY[z]
+    if not samples:
+        samples = ZONE_CDNRAY["ARGS"] + ZONE_CDNRAY["HEADERS"]
+    # de-dup, preserve order
+    seen = set()
+    out = []
+    for s in samples:
+        if s not in seen:
+            seen.add(s)
+            out.append(s)
+    return out
+
+
+def _pcre_to_python(pattern: str) -> str:
+    """
+    Best-effort rewrite of PCRE-only syntax so Python's re can compile it for
+    the cdnray check. nginx uses real PCRE, so these constructs are valid in
+    the emitted rule — we only need them parseable for local validation.
+    """
+    p = pattern
+    # \x{hh} / \x{hhhh}  ->  \xhh (Python understands \xhh, not braces)
+    p = re.sub(r"\\x\{([0-9A-Fa-f]{1,2})\}", lambda m: "\\x%02x" % int(m.group(1), 16), p)
+    p = re.sub(r"\\x\{[0-9A-Fa-f]{3,}\}", lambda m: ".", p)
+    p = p.replace(r"\z", r"\Z").replace(r"\A", "^")
+    # possessive quantifiers and atomic groups are PCRE-only
+    p = re.sub(r"([*+?}])\+", r"\1", p)
+    p = p.replace("(?>", "(?:")
+    return p
+
+
+def degenerate_reason(
+    pattern: str, kind: str, zones: list[str], negative: bool,
+    chain_head: bool = False,
+) -> Optional[str]:
+    """
+    Return a reason string if this rule must NOT be emitted, else None.
+
+    Catches the failure mode where a CRS rule only makes sense inside its chain
+    (the head is a no-op selector such as `@rx ^.*$`) or where negating a
+    pattern turns it into an unconditional block.
+
+    A rule whose regex cannot be validated locally is still emitted: nginx's
+    PCRE is the authority, and dropping it would lose real coverage.
+    """
+    stripped = pattern.strip()
+    if stripped in TRIVIAL_PATTERNS:
+        return f"trivial catch-all pattern {stripped!r}"
+
+    samples = cdnray_samples(zones)
+    if not samples:
+        return None
+
+    if kind == "str":
+        hits = sum(1 for s in samples if pattern in s)
+        rx = None
+    else:
+        rx = None
+        for candidate in (pattern, _pcre_to_python(pattern)):
+            try:
+                rx = re.compile(candidate)
+                break
+            except re.error:
+                continue
+        if rx is None:
+            # PCRE-only construct we cannot validate locally: emit unchecked.
+            return None
+        hits = sum(1 for s in samples if rx.search(s))
+
+    if negative:
+        # A negative rule fires whenever the pattern does NOT match. It is only
+        # safe if EVERY benign sample matches; otherwise legitimate traffic in
+        # the non-matching subset is blocked. This is what makes a de-chained
+        # rule like CRS 920340 ("Content-Length != 0") dangerous standalone.
+        if hits < len(samples):
+            if kind == "str":
+                missed = [s for s in samples if pattern not in s][:2]
+            else:
+                missed = [s for s in samples if not rx.search(s)][:2]
+            return (
+                f"negative rule fails {len(samples) - hits}/{len(samples)} benign "
+                f"cdnrays (e.g. {missed!r}) -> would block legitimate traffic"
+            )
+    elif chain_head:
+        # A salvaged chain head has lost the child condition that made it
+        # specific (e.g. CRS 920440: head = "URL has an extension", child =
+        # "extension is in the restricted list"). If it matches ANY benign
+        # sample it will block a whole legitimate traffic class.
+        if hits:
+            if kind == "str":
+                matched = [s for s in samples if pattern in s][:2]
+            else:
+                matched = [s for s in samples if rx.search(s)][:2]
+            return (
+                f"chain head matches {hits}/{len(samples)} benign cdnrays "
+                f"(e.g. {matched!r}) -> discriminating child condition was lost"
+            )
+    else:
+        if hits == len(samples):
+            return (
+                f"matches all {len(samples)} benign cdnrays "
+                f"-> catch-all, blocks normal traffic"
+            )
+    return None
 
 
 # ---------------------------------------------------------------- conversion
@@ -855,6 +1042,16 @@ def convert_file(
         name_zones = _canonical_zones(name_zones_raw) if name_zones_raw else []
         val_zones = _canonical_zones(val_zones_raw) if val_zones_raw else []
 
+        # Reject rules that would match (or negatively match) all benign traffic.
+        is_chain_head = "chain head" in extra_note
+        deg = degenerate_reason(
+            pattern, kind, name_zones + val_zones, negative, is_chain_head
+        )
+        if deg:
+            stats["skip:degenerate"] += 1
+            skipped_log.append((rid, f"degenerate: {deg}"))
+            return False
+
         def emit_one(pat: str, rule_id, mz: str, extra: str = "") -> None:
             full_msg = sanitize_msg(f"CRS {rid}{extra} {msg}{note}")
             safe_pat = nginx_safe_str(pat) if kind == "str" else nginx_safe_regex(pat)
@@ -866,7 +1063,7 @@ def convert_file(
 
         def emit_pattern(pat: str) -> bool:
             probe = nginx_safe_regex(pat) if kind != "str" else nginx_safe_str(pat)
-            if len(probe) > MAX_PAT:
+            if utf8_len(probe) > MAX_PAT:
                 return False
             if val_zones:
                 emit_one(pat, rid, "|".join(val_zones))
@@ -896,7 +1093,7 @@ def convert_file(
                 trial_pat = pm_to_regex(trial, ignore_case=False)
                 if pattern.startswith("(?i)"):
                     trial_pat = ensure_ignore_case(trial_pat, True)
-                if len(nginx_safe_regex(trial_pat)) > MAX_PAT - 50 and cur:
+                if utf8_len(nginx_safe_regex(trial_pat)) > MAX_PAT - 50 and cur:
                     chunks.append(pm_to_regex(cur, False))
                     cur = [w]
                 else:
@@ -908,7 +1105,30 @@ def convert_file(
         else:
             chunks = chunk_oversized_regex(pattern, MAX_PAT)
 
-        if chunks and all(len(nginx_safe_regex(c)) <= MAX_PAT for c in chunks):
+        if chunks and all(utf8_len(nginx_safe_regex(c)) <= MAX_PAT for c in chunks):
+            # Splitting a regex can carve out a *prefix component* rather than a
+            # self-sufficient alternative, producing a fragment far broader than
+            # the original (CRS 932230 chunk 2 -> matches any "word=value ").
+            # Re-run the cdnray check on each fragment and drop unsafe ones.
+            safe_chunks = []
+            for c in chunks:
+                # A chunk is a FRAGMENT of a larger required expression, so it
+                # is held to the same strict standard as a salvaged chain head:
+                # a correct attack-signature fragment must not match any benign
+                # sample.
+                cdeg = degenerate_reason(
+                    c, kind, name_zones + val_zones, negative, chain_head=True
+                )
+                if cdeg:
+                    stats["skip:degenerate_chunk"] += 1
+                    skipped_log.append((rid, f"degenerate chunk dropped: {cdeg}"))
+                else:
+                    safe_chunks.append(c)
+            if not safe_chunks:
+                stats["skip:degenerate"] += 1
+                skipped_log.append((rid, "all chunks degenerate after split"))
+                return False
+            chunks = safe_chunks
             for n, chunk in enumerate(chunks, 1):
                 rule_id = rid if n == 1 else int(rid) * 100 + n
                 extra = f" part {n}/{len(chunks)}"
@@ -931,7 +1151,10 @@ def convert_file(
 
         stats["skip:too_long"] += 1
         skipped_log.append(
-            (rid, f"regex too long ({len(nginx_safe_regex(pattern))} chars)")
+            (
+                rid,
+                f"regex too long ({utf8_len(nginx_safe_regex(pattern))} bytes)",
+            )
         )
         return False
 
@@ -1099,9 +1322,20 @@ def self_test() -> None:
 
     safe = nginx_safe_regex(op[4:])
     un = nginx_unescape(safe)
-    assert un == """(?i)[\\x22\\x27`]foo\\s+\\x24"""
+    # '$' must survive as '$' (CRS wrote \$ = literal dollar here).
+    # Rewriting it to \x24 would turn PCRE anchors into literal '$'.
+    assert un == """(?i)[\\x22\\x27`]foo\\s+\\$""", un
+
+    # Regression guard for the anchor bug: a bare trailing '$' stays an anchor.
+    anchored = nginx_unescape(nginx_safe_regex(r"^\d+$"))
+    assert anchored == r"^\d+$", anchored
+    assert re.search(anchored, "12345")
+    assert not re.search(anchored, "12345x")
     assert _canonical_zones(["ARGS|NAME", "BODY|NAME"]) == ["ARGS", "BODY", "NAME"]
     assert sanitize_msg('a "b" c') == "a 'b' c"
+    # Catch-all / negative cdnray guard smoke checks.
+    assert degenerate_reason("^.*$", "rx", ["ARGS"], False) is not None
+    assert degenerate_reason("sleep\\(", "rx", ["ARGS"], False) is None
     print("self-test: OK")
 
 
@@ -1122,9 +1356,12 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument(
         "--max-paranoia",
         type=int,
-        default=4,
+        default=1,
         choices=(1, 2, 3, 4),
-        help="Only convert rules at this paranoia level or below (default: 4)",
+        help=(
+            "Only convert rules at this paranoia level or below "
+            "(default: 1, matching CRS; PL3/PL4 often block normal browsers)"
+        ),
     )
     ap.add_argument(
         "--self-test",
