@@ -278,6 +278,22 @@ Always re-run **LearningMode** after regenerating.
 
 ---
 
+## Unit tests
+
+Test::Nginx cases live in [`../unit-tests/tests/039crs_converted_rules.t`](../unit-tests/tests/039crs_converted_rules.t). They load generated files from `crs2naxsi_rules/` and exercise representative SQLi / XSS / LFI / RFI / RCE / PHP / Java / leakage / webshell payloads, plus whitelist and multi-file load smoke tests.
+
+```bash
+# from repo (requires OpenResty + Test::Nginx as for other naxsi .t files)
+cd ../unit-tests/tests
+./test_naxsi 039crs_converted_rules.t
+# verbose:
+./test_naxsi -v 039crs_converted_rules.t
+```
+
+`./test_naxsi` sets `TEST_NGINX_NAXSI_CRS_RULES` to `crs2naxsi/crs2naxsi_rules` automatically.
+
+---
+
 ## Project layout
 
 ```text

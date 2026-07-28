@@ -1,0 +1,9 @@
+# CRS files that are mostly TX/anomaly/ctl machinery (little or no MainRule output)
+#
+# REQUEST-900-*: exclusion templates (wl:… in NAXSI BasicRule)
+# REQUEST-901-INITIALIZATION: sets TX vars / CRS setup — use naxsi LearningMode / CheckRule
+# REQUEST-905 / REQUEST-999: exception/skip machinery — map manually to BasicRule wl:<id>
+# REQUEST-949 / RESPONSE-959: anomaly score blocking — see checkrules.conf
+# RESPONSE-980-CORRELATION: logging/correlation only — no NAXSI equivalent
+#
+# Response leak files (950–956) ARE converted: signatures adapted onto request MZs.
