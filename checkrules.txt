@@ -1,0 +1,12 @@
+# Add inside each protected location{} (thresholds: tune per app)
+CheckRule "$GENERIC >= 8" BLOCK;
+CheckRule "$JAVA >= 8" BLOCK;
+CheckRule "$PHP >= 8" BLOCK;
+CheckRule "$PROTOCOL >= 8" BLOCK;
+CheckRule "$RCE >= 8" BLOCK;
+CheckRule "$RFI >= 8" BLOCK;
+CheckRule "$SCANNER >= 8" BLOCK;
+CheckRule "$SESSFIX >= 8" BLOCK;
+CheckRule "$SQL >= 8" BLOCK;
+CheckRule "$TRAVERSAL >= 8" BLOCK;
+CheckRule "$XSS >= 8" BLOCK;
