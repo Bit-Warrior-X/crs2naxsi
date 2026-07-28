@@ -1,0 +1,192 @@
+911011	ctl/skipAfter control rule
+911012	ctl/skipAfter control rule
+911100	operator @within
+911013	ctl/skipAfter control rule
+911014	ctl/skipAfter control rule
+911015	ctl/skipAfter control rule
+911016	ctl/skipAfter control rule
+911017	ctl/skipAfter control rule
+911018	ctl/skipAfter control rule
+913011	ctl/skipAfter control rule
+913012	ctl/skipAfter control rule
+913013	ctl/skipAfter control rule
+913014	ctl/skipAfter control rule
+913015	ctl/skipAfter control rule
+913016	ctl/skipAfter control rule
+913017	ctl/skipAfter control rule
+913018	ctl/skipAfter control rule
+920011	ctl/skipAfter control rule
+920012	ctl/skipAfter control rule
+920100	negated operator
+920160	negated operator
+920170	chained rule
+920171	chained rule
+920180	chained rule
+920181	chained rule
+920190	chained rule
+920660	operator @gt
+920250	chained rule
+920270	operator @validateByteRange
+920280	ctl/skipAfter control rule
+920310	chained rule
+920311	chained rule
+920340	chained rule
+920380	chained rule
+920360	chained rule
+920370	chained rule
+920390	chained rule
+920400	chained rule
+920410	chained rule
+920420	chained rule
+920480	chained rule
+920640	chained rule
+920430	operator @within
+920440	chained rule
+920450	chained rule
+920520	operator @gt
+920600	negated operator
+920539	ctl/skipAfter control rule
+920620	operator @gt
+920013	ctl/skipAfter control rule
+920014	ctl/skipAfter control rule
+920200	chained rule
+920201	chained rule
+920271	operator @validateByteRange
+920320	operator @eq
+920451	chained rule
+920240	chained rule
+920650	chained rule
+920015	ctl/skipAfter control rule
+920016	ctl/skipAfter control rule
+920272	operator @validateByteRange
+920300	chained rule
+920490	chained rule
+920510	chained rule
+920521	negated operator
+920017	ctl/skipAfter control rule
+920018	ctl/skipAfter control rule
+920202	chained rule
+920273	operator @validateByteRange
+920274	operator @validateByteRange
+920275	negated operator
+921011	ctl/skipAfter control rule
+921012	ctl/skipAfter control rule
+921160	quarantined: broad/stateful when standalone
+921013	ctl/skipAfter control rule
+921014	ctl/skipAfter control rule
+921015	ctl/skipAfter control rule
+921016	ctl/skipAfter control rule
+921230	operator @gt
+921170	quarantined: broad/stateful when standalone
+921180	operator @gt
+921017	ctl/skipAfter control rule
+921018	ctl/skipAfter control rule
+922100	chained rule
+922140	operator @gt
+922150	no mappable variables
+922110	negated operator
+922120	no mappable variables
+922130	no mappable variables
+930011	ctl/skipAfter control rule
+930012	ctl/skipAfter control rule
+930013	ctl/skipAfter control rule
+930014	ctl/skipAfter control rule
+930015	ctl/skipAfter control rule
+930016	ctl/skipAfter control rule
+930017	ctl/skipAfter control rule
+930018	ctl/skipAfter control rule
+931011	ctl/skipAfter control rule
+931012	ctl/skipAfter control rule
+931013	ctl/skipAfter control rule
+931014	ctl/skipAfter control rule
+931130	chained rule
+931015	ctl/skipAfter control rule
+931016	ctl/skipAfter control rule
+931017	ctl/skipAfter control rule
+931018	ctl/skipAfter control rule
+932011	ctl/skipAfter control rule
+932012	ctl/skipAfter control rule
+932230	regex too long (10947 chars)
+932250	regex too long (10958 chars)
+932180	chained rule
+932370	regex too long (14471 chars)
+932013	ctl/skipAfter control rule
+932014	ctl/skipAfter control rule
+932200	chained rule
+932205	chained rule
+932206	chained rule
+932207	chained rule
+932015	ctl/skipAfter control rule
+932016	ctl/skipAfter control rule
+932232	regex too long (6156 chars)
+932237	regex too long (7714 chars)
+932238	regex too long (6171 chars)
+932017	ctl/skipAfter control rule
+932018	ctl/skipAfter control rule
+933011	ctl/skipAfter control rule
+933012	ctl/skipAfter control rule
+933120	regex too long (7793 chars)
+933150	chained rule
+933013	ctl/skipAfter control rule
+933014	ctl/skipAfter control rule
+933151	regex too long (8447 chars)
+933152	regex too long (8091 chars)
+933153	regex too long (6382 chars)
+933015	ctl/skipAfter control rule
+933016	ctl/skipAfter control rule
+933017	ctl/skipAfter control rule
+933018	ctl/skipAfter control rule
+934011	ctl/skipAfter control rule
+934012	ctl/skipAfter control rule
+934013	ctl/skipAfter control rule
+934014	ctl/skipAfter control rule
+934015	ctl/skipAfter control rule
+934016	ctl/skipAfter control rule
+934017	ctl/skipAfter control rule
+934018	ctl/skipAfter control rule
+941011	ctl/skipAfter control rule
+941012	ctl/skipAfter control rule
+941010	ctl/skipAfter control rule
+941100	operator @detectXSS
+941160	regex too long (4628 chars)
+941310	chained rule
+941013	ctl/skipAfter control rule
+941014	ctl/skipAfter control rule
+941101	operator @detectXSS
+941015	ctl/skipAfter control rule
+941016	ctl/skipAfter control rule
+941017	ctl/skipAfter control rule
+941018	ctl/skipAfter control rule
+942011	ctl/skipAfter control rule
+942012	ctl/skipAfter control rule
+942100	operator @detectSQLi
+942013	ctl/skipAfter control rule
+942014	ctl/skipAfter control rule
+942200	chained rule
+942440	chained rule
+942521	chained rule
+942101	operator @detectSQLi
+942015	ctl/skipAfter control rule
+942016	ctl/skipAfter control rule
+942017	ctl/skipAfter control rule
+942018	ctl/skipAfter control rule
+943011	ctl/skipAfter control rule
+943012	ctl/skipAfter control rule
+943110	chained rule
+943120	chained rule
+943013	ctl/skipAfter control rule
+943014	ctl/skipAfter control rule
+943015	ctl/skipAfter control rule
+943016	ctl/skipAfter control rule
+943017	ctl/skipAfter control rule
+943018	ctl/skipAfter control rule
+944011	ctl/skipAfter control rule
+944012	ctl/skipAfter control rule
+944110	chained rule
+944120	chained rule
+944013	ctl/skipAfter control rule
+944014	ctl/skipAfter control rule
+944015	ctl/skipAfter control rule
+944016	ctl/skipAfter control rule
+944017	ctl/skipAfter control rule
+944018	ctl/skipAfter control rule
